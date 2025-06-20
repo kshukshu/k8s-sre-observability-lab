@@ -134,6 +134,8 @@ spec:
     repoURL: https://github.com/kshukshu/Mini-Cloud-Native-Platform.git
     targetRevision: HEAD
     path: k8s
+    directory:
+      recurse: true   # 🔑 allow manifests in sub‑directories (k8s/nginx/*)
   syncPolicy:
     automated:
       prune: true

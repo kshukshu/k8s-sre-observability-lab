@@ -67,8 +67,29 @@ $Env:DATADOG_API_KEY="<your-datadog-key>"
 $Env:NEW_RELIC_LICENSE_KEY="<your-nr-license-key>"
 ```
 
-### 5. Deploy Argo CD & the monitoring stack
+<details>
+  <summary>Where do I get these keys?</summary>
 
+| SaaS          | Free plan / Trial                    | Steps to obtain API Key / License Key                                                                                                                                                                                                                                                                                                                                        |
+| ------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Datadog**   | 14‑day full trial (no credit card ⬤) | 1. Go to [https://app.datadoghq.com/signup](https://app.datadoghq.com/signup) and create an account.<br>2. **E‑mail** を確認してワンタイムパスでログイン。<br>3. ナビゲーションバー **Integrations → APIs** へ移動。<br>4. *API Keys* タブで **+ New Key** → 任意の名前を付けて **Create Key**。<br>5. 生成された文字列をそのまま `DATADOG_API_KEY` にコピー。<br>⬥ US サイト ↔ EU アカウントの場合は `datadoghq.eu` を Helm に渡す（Quickstart Step 5 参照）。 |
+| **New Relic** | ⬤ **全機能無料プラン** (100 GB/月) + クレカ不要    | 1. Sign up at [https://newrelic.com/signup](https://newrelic.com/signup) (email + password).<br>2. Once logged in, click your profile avatar → **API Keys**.<br>3. Under *Ingest – License* tab, click **+ Create a key**.<br>4. Copy the **License key** string → `NEW_RELIC_LICENSE_KEY`.                                                                                  |
+
+`⬤` = No credit card required (2025‑06時点)
+
+</details>bash
+# Bash / zsh
+export DATADOG_API_KEY="<your-datadog-key>"
+export NEW_RELIC_LICENSE_KEY="<your-nr-license-key>"
+
+# PowerShell (VS Code default on Windows)
+
+\$Env\:DATADOG\_API\_KEY="<your-datadog-key>"
+\$Env\:NEW\_RELIC\_LICENSE\_KEY="<your-nr-license-key>"
+
+````
+
+### 5. Deploy Argo CD & the monitoring stack
 ```bash
 # Bash/zsh version (back‑slash line continuations)
 helm install argocd argo/argo-cd --namespace argocd --create-namespace
@@ -77,23 +98,59 @@ helm install dd datadog/datadog \
   --set datadog.apiKey=$DATADOG_API_KEY \
   --set datadog.site="datadoghq.com" --namespace datadog --create-namespace
 helm install nr newrelic/nri-bundle \
-  --set global.licenseKey=$NEW_RELIC_LICENSE_KEY --namespace newrelic --create-namespace
+  --set global.licenseKey=$NEW_RELIC_LICENSE_KEY \
+  --set global.cluster="kind-demo" \
+  --namespace newrelic --create-namespace
 
 # PowerShell version (use back‑tick ` for continuation)
 helm install dd datadog/datadog `
   --set datadog.apiKey=$Env:DATADOG_API_KEY `
   --set datadog.site="datadoghq.com" --namespace datadog --create-namespace
 helm install nr newrelic/nri-bundle `
-  --set global.licenseKey=$Env:NEW_RELIC_LICENSE_KEY --namespace newrelic --create-namespace
-```
+  --set global.licenseKey=$Env:NEW_RELIC_LICENSE_KEY `
+  --set global.cluster="kind-demo" `
+  --namespace newrelic --create-namespace
+````
 
-### 6. Register the application in Argo CD
+### 6. Register this repo as an Argo CD application
+
+> If `k8s/argocd/app.yaml` does **not yet exist**, create it with the snippet below, commit, and push. Otherwise skip to the *kubectl apply* step.
 
 ```bash
+# 6‑A. Generate the manifest (one‑time)
+mkdir -p k8s/argocd
+cat > k8s/argocd/app.yaml <<'EOF'
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mini-cloud-native
+  namespace: argocd
+spec:
+  destination:
+    namespace: default
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    repoURL: https://github.com/kshukshu/Mini-Cloud-Native-Platform.git
+    targetRevision: HEAD
+    path: k8s
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+EOF
+
+git add k8s/argocd/app.yaml
+git commit -m "Add Argo CD Application manifest"
+git push
+```
+
+```bash
+# 6‑B. Apply the manifest to Argo CD
 kubectl apply -f k8s/argocd/app.yaml
 ```
 
-### 7. Open Argo CD dashboard
+### 7. Open Argo CD dashboard Open Argo CD dashboard
 
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8080:443

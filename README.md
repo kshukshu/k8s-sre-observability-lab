@@ -1,94 +1,96 @@
-# Mini Cloud‑Native Platform 🇪🇺
+# Mini Cloud-Native Observability Platform 🇪🇺🏃‍♂️
 
-> **Showcasing my ability to master unfamiliar SRE tooling in < 3 hours** – built by **Shuhei Kato**, an AWS‑seasoned Cloud Engineer now seeking Site Reliability / Platform roles across the EU (relocating to the Netherlands).
-
----
-
-## 🚀 TL;DR for busy recruiters
-
-|                       | Link                                                                             | What to look at                                                    |
-| --------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| 🎥 quick demo        | **Loom:** [URL](https://www.loom.com/share/28524a199dfb4a86bc4ed46723af5f14?sid=032d7246-2179-4320-97ad-715335432705)                   | Live walk‑through of failure injection → auto‑healing → dashboards |
-| 🗂 Source repo        | *This GitHub repo*                                                               | Inspect IaC, GitOps, NetworkPolicy, Helm values                    |
-
-**Why it matters** — I have years of AWS infrastructure experience but *no prior hands‑on* with Datadog / New Relic / Helm / Prometheus & Grafana. This project proves I can **pick up new observability stacks fast, wire them together, and articulate results**.
+**3-hour “unknown-tool” spike** – built by **Shuhei Kato**, an AWS-seasoned Cloud Engineer now relocating to the Netherlands and seeking Site Reliability / Platform roles across the EU.
 
 ---
 
-## 🔥 What I actually built (and why it’s impressive in 3 h)
+## 🚀 60-second pitch
 
-| Layer      | Tool                     | Why it’s here                                 | Hiring‑signal                      |
-| ---------- | ------------------------ | --------------------------------------------- | ---------------------------------- |
-| Runtime    | **Kind**                 | Reproducible single‑node Kubernetes in Docker | Local K8s competency               |
-| GitOps     | **Argo CD**              | Declarative sync from Git ➜ cluster           | Modern delivery workflows          |
-| Metrics DB | **Prometheus + Grafana** | OSS baseline, custom SLI rule                 | DIY monitoring roots               |
-| SaaS #1    | **Datadog**              | Org‑level SLO & Incident feed                 | Can onboard 3rd‑party SaaS quickly |
-| SaaS #2    | **New Relic**            | APM / OTLP traces                             | Polyglot observability             |
-| Security   | **NetworkPolicy**        | Default‑deny micro‑segmentation demo          | Zero‑Trust mindset                 |
+|                   | Where to click                                                                                                                  | Why it matters                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 🎥 **2‑min demo** | Loom [https://www.loom.com/share/28524a199dfb4a86bc4ed46723af5f14](https://www.loom.com/share/28524a199dfb4a86bc4ed46723af5f14) | Live failure‑injection ➜ auto‑healing ➜ dashboards |
+| 🗂 **Source**     | *This repo*                                                                                                                     | IaC, GitOps, Helm, NetworkPolicy                   |
 
-🚧 **Failure demo** – scaling `nginx` to 0 triggers:
-
-1. Prometheus Rule → Datadog SLO breach (visible on public dashboard)
-2. Argo CD self‑heal sets replicas = 1
-3. Metrics & error‑budget instantly recover
-
-Time‑boxed tasks & commit timestamps are in the Git history for transparency.
+> **I had zero prior hands‑on with Datadog, New Relic, Prometheus / Grafana, or Helm.**
+> In one evening I wired them together, defined SLOs, and told the story on video.
 
 ---
 
-## 🗺 High‑level architecture
+## 🧩 What’s in the box (3 h, solo)
+
+| Layer      | Tooling                      | Why I chose it                  | Hiring signal             |
+| ---------- | ---------------------------- | ------------------------------- | ------------------------- |
+| Runtime    | **kind**                     | Reproducible single‑node K8s    | Local K8s chops           |
+| GitOps     | **Argo CD**                  | Declarative sync Git → cluster  | Modern delivery           |
+| Metrics DB | **Prometheus + Grafana OSS** | Baseline SLI/SLO                | DIY monitoring roots      |
+| SaaS #1    | **Datadog**                  | Org‑level SLO & incident feed   | Fast 3rd‑party onboarding |
+| SaaS #2    | **New Relic**                | APM & OTLP traces               | Polyglot observability    |
+| Security   | **NetworkPolicy**            | Default‑deny micro‑segmentation | Zero‑Trust mindset        |
+
+**Failure drill** — scaling `nginx` replicas to **0** triggers:
+
+1. **Prometheus rule** breaches Datadog SLO (public dashboard).
+2. **Argo CD** auto‑heals replicas back to **1**.
+3. Error budget recovers in seconds.
+
+*Time‑boxed commits prove the 3‑hour limit; see Git history.*
+
+---
+
+## 🗺 High‑level architecture
 
 ```mermaid
 flowchart LR
   subgraph SaaS
-    DD[Datadog\nSLO+Incident] --push--> DDDB
-    NR[New Relic\nAPM/Trace] --push--> NRDB
+    DD[Datadog\nSLO & Incidents]
+    NR[New Relic\nAPM & Traces]
   end
-  subgraph Cluster[Kind cluster]
-    nginx>nginx Deployment]
+  subgraph Cluster[kind • 1-node K8s]
+    nginx[nginx\nDeployment]
     Prom[Prometheus]
     Graf[Grafana]
-    DDagent[(Datadog Agent)]
-    NRagent[(NR Infra Agent)]
-    nginx -->|metrics| Prom
-    nginx -->|metrics| DDagent & NRagent
+    DDAgent[(DD Agent)]
+    NRAgent[(NR Infra Agent)]
+    nginx -- metrics --> Prom
+    nginx -- stats --> DDAgent & NRAgent
     Prom --> Graf
   end
   subgraph Git
-    Repo[(GitHub repo)] --> ArgoCD
+    Repo[(GitHub)] --> ArgoCD
   end
   ArgoCD --> Cluster
+  DDAgent --> DD
+  NRAgent --> NR
 ```
 
 ---
 
-## 🧑‍💻 Setup & Reproduce this demo
-
-Full terminal guide moved to **[`setup.md`](./setup.md)** to keep this README recruiter‑friendly. Two commands if you’re curious:
+## 🔄 Reproduce locally (5 min)
 
 ```bash
-kind create cluster --name demo     # spin up local K8s
-kubectl apply -f k8s/argocd/app.yaml  # Argo CD syncs the rest
+kind create cluster --name demo
+kubectl apply -f k8s/argocd/app.yaml   # Argo CD syncs the rest
 ```
 
-*(Requires Helm, kubectl, Kind; SaaS keys as env vars.)*
+> Requirements: Helm · kubectl · kind · SaaS keys as env vars.
 
 ---
 
-## ✨ Key take‑aways for hiring managers
+## ✨ Why this matters to you
 
-* **Fast learner:** went from zero to functional Datadog/New Relic stack in one evening.
-* **Production habits:** GitOps, SLOs, NetworkPolicy – not just “Hello World”.
-* **Clear communication:** demo video, public dashboards, this concise README.
-* **EU relocation‑ready:** already based in CET timezone, English + Japanese.
+* **Steep‑curve learner** – Delivered working Datadog / New Relic stack from scratch in three hours.
+* **Production reflexes** – GitOps, SLOs, default‑deny networking, not just “Hello World”.
+* **Clear communicator** – Concise README, Loom walk‑through, public dashboards.
+* **EU‑ready** – Already in CET, fluent English (B2) + native Japanese, Dutch A1 and improving. Valid NL residence.
 
-> “Give me 30 days with your platform and I will light up red / yellow / green health signals your devs actually trust.”
+> *“Give me 30 days with your platform and you’ll have red/amber/green signals your devs actually trust.”*
 
 ---
 
-## 📇 About me
+## 📇 About Shuhei Kato
 
-- **Name**: **Shuhei Kato**
-- **Contact**
-    - [LinkedIn](https://linkedin.com/in/your-profile)
-    - [Email](mailto:me@example.com)
+* **Cloud & SRE Engineer / ex‑Consultant** – AWS, Terraform, Golang, Kubernetes.
+* **Current base** – Groningen, Netherlands (open to hybrid / remote across the EU).
+* **Contact** – [LinkedIn](https://www.linkedin.com/in/your-profile) · [Email](mailto:kshu.1017@gmail.com) · [GitHub](https://github.com/kshukshu)
+
+---

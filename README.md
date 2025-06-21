@@ -95,8 +95,12 @@ export NEW_RELIC_LICENSE_KEY="<your-nr-license-key>"
 helm install argocd argo/argo-cd --namespace argocd --create-namespace
 helm install mon prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace
 helm install dd datadog/datadog \
-  --set datadog.apiKey=$DATADOG_API_KEY \
-  --set datadog.site="datadoghq.com" --namespace datadog --create-namespace
+  --set-string datadog.apiKey=$DATADOG_API_KEY \
+  --set datadog.site="datadoghq.eu" \
+  --set systemProbe.enabled=false \
+  --set networkMonitoring.enabled=false \
+  --set securityAgent.runtime.enabled=false \
+  --namespace datadog --create-namespace
 helm install nr newrelic/nri-bundle \
   --set global.licenseKey=$NEW_RELIC_LICENSE_KEY \
   --set global.cluster="kind-demo" \
@@ -104,8 +108,12 @@ helm install nr newrelic/nri-bundle \
 
 # PowerShell version (use back‑tick ` for continuation)
 helm install dd datadog/datadog `
-  --set datadog.apiKey=$Env:DATADOG_API_KEY `
-  --set datadog.site="datadoghq.com" --namespace datadog --create-namespace
+  --set-string datadog.apiKey=$Env:DATADOG_API_KEY `
+  --set datadog.site="datadoghq.eu" `
+  --set systemProbe.enabled=false `
+  --set networkMonitoring.enabled=false `
+  --set securityAgent.runtime.enabled=false `
+  --namespace datadog --create-namespace
 helm install nr newrelic/nri-bundle `
   --set global.licenseKey=$Env:NEW_RELIC_LICENSE_KEY `
   --set global.cluster="kind-demo" `
@@ -115,8 +123,22 @@ helm install nr newrelic/nri-bundle `
 ### 6. Register this repo as an Argo CD application
 
 > If `k8s/argocd/app.yaml` does **not yet exist**, create it with the snippet below, commit, and push. Otherwise skip to the *kubectl apply* step.
+>
+> **🔐 Private repo?** Add GitHub credentials before syncing:
+>
+> ```bash
+> # 1) Generate a fine‑grained PAT (repo:read scope)
+> # 2) Create a secret so Argo CD can auth
+> kubectl -n argocd create secret generic github-creds \
+>   --type Opaque \
+>   --from-literal=username=git \
+>   --from-literal=password=<YOUR_GITHUB_TOKEN> \
+>   --from-literal=url=https://github.com/kshukshu/Mini-Cloud-Native-Platform.git
+> ```
+>
+> Then refresh the Application in the UI or run `kubectl argo rollouts sync mini-cloud-native`.
 
-```bash
+````bash
 # 6‑A. Generate the manifest (one‑time)
 mkdir -p k8s/argocd
 cat > k8s/argocd/app.yaml <<'EOF'
@@ -142,22 +164,11 @@ spec:
       selfHeal: true
 EOF
 
-git add k8s/argocd/app.yaml
-git commit -m "Add Argo CD Application manifest"
-git push
-```
-
-```bash
-# 6‑B. Apply the manifest to Argo CD
-kubectl apply -f k8s/argocd/app.yaml
-```
-
-### 7. Open Argo CD dashboard Open Argo CD dashboard
-
+... Open Argo CD dashboard Open Argo CD dashboard
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 # → browse https://localhost:8080  (user: admin, pw: $(kubectl -n argocd get secret argocd-initial-admin-secret -ojsonpath='{.data.password}' | base64 -d))
-```
+````
 
 ### 8. Git push → Auto‑sync demo
 
@@ -260,7 +271,7 @@ graph TD
 | **Grafana**                     | comes from `kube-prometheus-stack`                           |
 | **New Relic**                   | OpenTelemetry export via Helm bundle                         |
 | **SLO/SLI**                     | PrometheusRule + Datadog SLO "95 % availability / 2 min"     |
-| **Incident Response / On‑Call** | Datadog monitor → Slack webhook (`@here`)                    |
+| **Incident Response / On‑Call** | Datadog Monitor (Slack integration optional)                 |
 | **Zero‑Trust**                  | `deny-all.yaml` + `allow-from-ingress.yaml`                  |
 | **Microsegmentation**           | NetworkPolicy limits traffic to service port only            |
 
@@ -274,7 +285,7 @@ graph TD
    kubectl scale deploy/nginx --replicas=0
    ```
 
-2. Datadog SLO breaches → Slack alert fires.
+2. Datadog SLO breach appears in Events feed (Slack alert optional).
 3. **Recover**
 
    ```bash
@@ -292,6 +303,69 @@ graph TD
 | Kind cluster              | \$0 (local)        |
 | Datadog & New Relic trial | \$0 (14‑day trial) |
 | GitHub Pages / Loom       | \$0                |
+
+---
+
+## 🛑 Stop & Restart Cheat‑Sheet
+
+> **Need to free laptop RAM or pause the demo?** Use these commands to take the whole stack down and bring it back exactly as before.
+
+### 🔻 Stop everything (≈ 30 s)
+
+```bash
+# 1. Delete port‑forwards (⌃C in the terminal running them)
+# 2. Remove SaaS agents & monitoring stack
+helm uninstall argocd -n argocd || true
+helm uninstall mon -n monitoring || true
+helm uninstall dd -n datadog || true
+helm uninstall nr -n newrelic || true
+# 3. Nuke namespaces to clean PVCs
+kubectl delete ns argocd monitoring datadog newrelic --wait --ignore-not-found
+# 4. Tear down the Kind cluster
+kind delete cluster --name demo
+```
+
+### 🔺 Restart fresh (≈ 3 min)
+
+````bash
+# 1. Spin up the Kind cluster *first* (this recreates the kube‑config context)
+kind create cluster --name demo                      # ≈ 60 s
+
+# 2. Verify kubectl is now talking to the new cluster
+kubectl cluster-info --context kind-demo             # ←エラーが無ければ OK
+
+# 3. Re‑add Helm repos & update (safe to re‑run)
+helm repo add argo https://argoproj.github.io/argo-helm || true
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
+helm repo add datadog https://helm.datadoghq.com || true
+helm repo add newrelic https://helm-charts.newrelic.com || true
+helm repo update
+
+# 4. Re‑deploy the core charts (same as Quick‑start Step 5)
+#    👉 copy‑paste the exact "helm install ..." block you used earlier
+
+# 5. Re‑apply the Argo CD Application (after argocd chart is ready)
+kubectl apply -f k8s/argocd/app.yaml                 # GitOps takes it from here
+
+# 6. Watch Argo CD sync
+kubectl -n argocd get applications mini-cloud-native
+```bash
+# 1. Re‑create cluster
+kind create cluster --name demo
+# 2. Re‑deploy core charts (reuse Quick‑start Step 3–5)
+helm repo update
+# ↳ Argo CD + Prom/Grafana + Datadog + New Relic
+# 3. Re‑apply Argo CD Application
+kubectl apply -f k8s/argocd/app.yaml
+# 4. Wait ~30 s → Argo CD auto‑syncs everything from Git
+kubectl -n argocd get applications mini-cloud-native
+````
+
+> Cluster state is **declarative in Git**, so restart = create Kind + `kubectl apply` above. No manual tweaks needed.
+> \------|
+> \| Kind cluster | \$0 (local) |
+> \| Datadog & New Relic trial | \$0 (14‑day trial) |
+> \| GitHub Pages / Loom | \$0 |
 
 ---
 

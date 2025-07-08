@@ -1,7 +1,7 @@
 
 # k8s‑SRE‑Observability‑Lab 🩺📈
 
-**3-hour “unknown-tool” spike** – built by **Shuhei Kato**, an AWS-seasoned Cloud Engineer now relocating to the Netherlands and seeking Site Reliability / Platform roles across the EU.
+**5-hour “unknown-tool” spike** – built by **Shuhei Kato**, an AWS-seasoned Cloud Engineer now relocating to the Netherlands and seeking Site Reliability / Platform roles across the EU.
 
 ---
 
@@ -34,7 +34,7 @@
 2. **Argo CD** auto‑heals replicas back to **1**.
 3. Error budget recovers in seconds.
 
-*Time‑boxed commits prove the 3‑hour limit; see Git history.*
+*Time‑boxed commits prove the 5‑hour limit; see Git history.*
 
 ---
 
@@ -79,7 +79,7 @@ kubectl apply -f k8s/argocd/app.yaml   # Argo CD syncs the rest
 
 ## ✨ Why this matters to you
 
-* **Steep‑curve learner** – Delivered working Datadog / New Relic stack from scratch in three hours.
+* **Steep‑curve learner** – Delivered working Datadog / New Relic stack from scratch in five hours.
 * **Production reflexes** – GitOps, SLOs, default‑deny networking, not just “Hello World”.
 * **Clear communicator** – Concise README, Loom walk‑through, public dashboards.
 * **EU‑ready** – Already in CET, fluent English (B2) + native Japanese, Dutch A1 and improving. Valid NL residence.

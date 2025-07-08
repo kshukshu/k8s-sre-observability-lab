@@ -1,4 +1,5 @@
-# Mini Cloud-Native Observability Platform 🇪🇺🏃‍♂️
+
+# k8s‑SRE‑Observability‑Lab 🩺📈
 
 **3-hour “unknown-tool” spike** – built by **Shuhei Kato**, an AWS-seasoned Cloud Engineer now relocating to the Netherlands and seeking Site Reliability / Platform roles across the EU.
 
@@ -84,13 +85,3 @@ kubectl apply -f k8s/argocd/app.yaml   # Argo CD syncs the rest
 * **EU‑ready** – Already in CET, fluent English (B2) + native Japanese, Dutch A1 and improving. Valid NL residence.
 
 > *“Give me 30 days with your platform and you’ll have red/amber/green signals your devs actually trust.”*
-
----
-
-## 📇 About Shuhei Kato
-
-* **Cloud & SRE Engineer / ex‑Consultant** – AWS, Terraform, Golang, Kubernetes.
-* **Current base** – Groningen, Netherlands (open to hybrid / remote across the EU).
-* **Contact** – [LinkedIn](https://www.linkedin.com/in/your-profile) · [Email](mailto:kshu.1017@gmail.com) · [GitHub](https://github.com/kshukshu)
-
----
